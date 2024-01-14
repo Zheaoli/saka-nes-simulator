@@ -42,8 +42,8 @@ enum Mode {
 enum InterruptType {
     NMI,
     IRQ,
+    RESET,
     BRK,
-    None,
 }
 
 pub struct CPU {
@@ -145,7 +145,7 @@ impl CPU {
         self.p & (FlagBit::Carry as u8);
     }
 
-    fn get_oeratate_address(&self, mode: Mode) -> u16 {
+    fn get_operand_address(&self, mode: Mode) -> u16 {
         match mode {
             Mode::Immediate => {
                 let temp = self.pc;
@@ -200,4 +200,43 @@ impl CPU {
             Mode::NoMode => panic!("No mode"),
         }
     }
+
+    fn  fetch_operand(&mut self, mode: Mode) -> u8 {
+        let address = self.get_operand_address(mode);
+        // TODO: Read from bus
+        0
+    }
+
+    fn interrupt(&mut self, kind:InterruptType){
+        let (ticks,push,address,flags)=match kind{
+            InterruptType::NMI=>(2,true,0xFFFAu16,vec![FlagBit::IrqDisable]),
+            InterruptType::RESET=>(5,false,0xFFFCu16,vec![]),
+            InterruptType::IRQ=>(2, true, 0xFFFEu16, vec![FlagBit::IrqDisable]),
+            InterruptType::BRK=>(1,true,0xFFFEu16,vec![FlagBit::IrqDisable,FlagBit::Break]),
+        };
+        // Interrupts need couple of ticks to complete
+        // The baseline is the BRK instruction, which takes 6 ticks
+        // The rest of the interrupts take from 7-10 ticks
+        for _ in 0..ticks{
+            // TODO: 1 CPU Tick
+
+        }
+        // Push PC to stack
+        if push {
+            let pc=self.pc;
+            // Update the state register and push it into the stack
+            let mut p = self.p | FlagBit::Push as u8;
+            if let InterruptType::BRK=kind{
+                p|=FlagBit::Break as u8;
+            }
+            self.push_2bytes(pc);
+            self.push_byte(p);
+        }
+        for f in flags{
+            self.update_flag(f,true);
+        }
+        // TODO: read the new address
+        self.pc=0;
+    }
+    
 }
