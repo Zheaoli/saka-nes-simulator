@@ -1,4 +1,7 @@
-use std::intrinsics::offset;
+use log::debug;
+
+mod debug;
+mod utils;
 
 // 7  bit  0
 // ---- ----
@@ -11,7 +14,7 @@ use std::intrinsics::offset;
 // ||++------ No CPU effect, see: the B flag
 // |+-------- Overflow
 // +--------- Negative
-mod utils;
+
 enum FlagBit {
     Carry = 0b00000001,
     Zero = 0b00000010,
@@ -188,10 +191,10 @@ impl CPU {
                 // TODO: Read from bus
                 0
             }
-            Mode::IndirectY=>{
+            Mode::IndirectY => {
                 let temp = self.next_byte();
                 // TODO: Read from bus
-                let base=0 as u16;
+                let base = 0 as u16;
                 if utils::check_cross_page(base, self.y) {
                     // TODO: 1 CPU Tick
                 }
@@ -201,42 +204,59 @@ impl CPU {
         }
     }
 
-    fn  fetch_operand(&mut self, mode: Mode) -> u8 {
+    fn fetch_operand(&mut self, mode: Mode) -> u8 {
         let address = self.get_operand_address(mode);
         // TODO: Read from bus
         0
     }
 
-    fn interrupt(&mut self, kind:InterruptType){
-        let (ticks,push,address,flags)=match kind{
-            InterruptType::NMI=>(2,true,0xFFFAu16,vec![FlagBit::IrqDisable]),
-            InterruptType::RESET=>(5,false,0xFFFCu16,vec![]),
-            InterruptType::IRQ=>(2, true, 0xFFFEu16, vec![FlagBit::IrqDisable]),
-            InterruptType::BRK=>(1,true,0xFFFEu16,vec![FlagBit::IrqDisable,FlagBit::Break]),
+    fn interrupt(&mut self, kind: InterruptType) {
+        let (ticks, push, address, flags) = match kind {
+            InterruptType::NMI => (2, true, 0xFFFAu16, vec![FlagBit::IrqDisable]),
+            InterruptType::RESET => (5, false, 0xFFFCu16, vec![]),
+            InterruptType::IRQ => (2, true, 0xFFFEu16, vec![FlagBit::IrqDisable]),
+            InterruptType::BRK => (
+                1,
+                true,
+                0xFFFEu16,
+                vec![FlagBit::IrqDisable, FlagBit::Break],
+            ),
         };
         // Interrupts need couple of ticks to complete
         // The baseline is the BRK instruction, which takes 6 ticks
         // The rest of the interrupts take from 7-10 ticks
-        for _ in 0..ticks{
+        for _ in 0..ticks {
             // TODO: 1 CPU Tick
-
         }
         // Push PC to stack
         if push {
-            let pc=self.pc;
+            let pc = self.pc;
             // Update the state register and push it into the stack
             let mut p = self.p | FlagBit::Push as u8;
-            if let InterruptType::BRK=kind{
-                p|=FlagBit::Break as u8;
+            if let InterruptType::BRK = kind {
+                p |= FlagBit::Break as u8;
             }
             self.push_2bytes(pc);
             self.push_byte(p);
         }
-        for f in flags{
-            self.update_flag(f,true);
+        for f in flags {
+            self.update_flag(f, true);
         }
         // TODO: read the new address
-        self.pc=0;
+        self.pc = 0;
     }
-    
+
+    #[allow(dead_code)]
+    pub fn log_instruction(&mut self) {
+        let pc = self.pc;
+        let rom_offset = 15 + (self.pc % 0x4000);
+        // TODO: read from bus
+        let opcode = 0 as usize;
+        let mut args = String::new();
+        for i in 1..debug::INSTRUCTION_SIZES[opcode] {
+
+            // write!(args,"{:02X} ",self.fetch_operand(Mode::Immediate)).unwrap();
+        }
+        debug!("{}",format!("OFFSET: {:06x}\tPC: {:04x}\tOPCODE: {:02x}\tPC: {:04x}\tA: {:02x}\tX: {:02x}\tY: {:02x}\tP: {:08b}\t opcode: [{:02x}] {}\t{}",rom_offset,pc,opcode,pc,self.a,self.x,self.y,self.p,opcode,debug::INSTRUCTION_NAMES[opcode],args));
+    }
 }
