@@ -1,6 +1,7 @@
 use log::debug;
 
 use self::utils::high_byte;
+use super::bus::SystemBus;
 
 mod debug;
 mod utils;
@@ -52,7 +53,7 @@ enum InterruptType {
 }
 
 pub struct CPU {
-    // TODO: Add bus here
+    pub bus: SystemBus,
     pc: u16,
     sp: u8,
     a: u8,
@@ -62,8 +63,9 @@ pub struct CPU {
 }
 
 impl CPU {
-    pub fn new() -> CPU {
+    pub fn new(bus:SystemBus) -> CPU {
         CPU {
+            bus,
             pc: 0,
             sp: 0,
             a: 0,
@@ -159,25 +161,25 @@ impl CPU {
             }
             Mode::ZeroPage => self.next_byte() as u16,
             Mode::ZeroPageX => {
-                // TODO: 1 CPU Tick
+                self.bus.tick();
                 utils::low_byte(utils::offset(self.next_byte(), self.x))
             }
             Mode::ZeroPageY => {
-                // TODO: 1 CPU Tick
+                self.bus.tick();
                 utils::low_byte(utils::offset(self.next_byte(), self.y))
             }
             Mode::Absolute => self.next_2bytes(),
             Mode::AbsoluteX => {
                 let temp = self.next_2bytes();
                 if utils::check_cross_page(temp, self.x) {
-                    // TODO: 1 CPU Tick
+                    self.bus.tick();
                 }
                 utils::offset(temp, self.x)
             }
             Mode::AbsoluteY => {
                 let temp = self.next_2bytes();
                 if utils::check_cross_page(temp, self.y) {
-                    // TODO: 1 CPU Tick
+                    self.bus.tick();
                 }
                 utils::offset(temp, self.y)
             }
@@ -187,7 +189,7 @@ impl CPU {
                 0
             }
             Mode::IndirectX => {
-                // TODO: 1 CPU Tick
+                self.bus.tick();
                 let temp = self.next_byte();
                 let address = utils::offset(temp, self.x);
                 // TODO: Read from bus
@@ -198,7 +200,7 @@ impl CPU {
                 // TODO: Read from bus
                 let base = 0 as u16;
                 if utils::check_cross_page(base, self.y) {
-                    // TODO: 1 CPU Tick
+                    self.bus.tick();
                 }
                 utils::offset(base, self.y)
             }
@@ -228,7 +230,7 @@ impl CPU {
         // The baseline is the BRK instruction, which takes 6 ticks
         // The rest of the interrupts take from 7-10 ticks
         for _ in 0..ticks {
-            // TODO: 1 CPU Tick
+            self.bus.tick();
         }
         // Push PC to stack
         if push {
@@ -683,7 +685,7 @@ impl CPU {
         let operand = 0 as u8;
         let result = (operand << 1) | self.get_carry();
         self.update_flag(FlagBit::Carry, (operand & 0b10000000) != 0);
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         self.update_zero_and_negative(result);
         // TODO: Write to memory
         result
@@ -695,7 +697,7 @@ impl CPU {
         self.update_flag(FlagBit::Carry, (a & 0b10000000) != 0);
         self.update_zero_and_negative(result);
         self.a = result;
-        // TODO: 1 CPU Tick
+        self.bus.tick();
     }
 
     fn ror(&mut self, mode: Mode) {
@@ -708,7 +710,7 @@ impl CPU {
         let operand = 0 as u8;
         let result = (operand >> 1) | (self.get_carry() << 7);
         self.update_flag(FlagBit::Carry, (operand & 0b00000001) != 0);
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         self.update_zero_and_negative(result);
         // TODO: Write to memory
         result
@@ -720,7 +722,7 @@ impl CPU {
         self.update_flag(FlagBit::Carry, (operand & 0b00000001) != 0);
         self.update_zero_and_negative(result);
         self.a = result;
-        // TODO: 1 CPU Tick
+        self.bus.tick();
     }
 
     fn asl(&mut self, mode: Mode) {
@@ -733,7 +735,7 @@ impl CPU {
         let operand = 0 as u8;
         let result = operand << 1;
         self.update_flag(FlagBit::Carry, (operand & 0b10000000) != 0);
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         self.update_zero_and_negative(result);
         // TODO: Write to memory
         result
@@ -744,7 +746,7 @@ impl CPU {
         self.update_flag(FlagBit::Carry, operand & 0b10000000 != 0);
         self.update_zero_and_negative(result);
         self.a = result;
-        // TODO: 1 CPU Tick
+        self.bus.tick();
     }
 
     fn lsr(&mut self, mode: Mode) {
@@ -757,7 +759,7 @@ impl CPU {
         let operand = 0 as u8;
         let result = operand >> 1;
         self.update_flag(FlagBit::Carry, operand & 0b00000001 != 0);
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         self.update_zero_and_negative(result);
         // TODO: write to memory
         result
@@ -769,7 +771,7 @@ impl CPU {
         self.update_flag(FlagBit::Carry, operand & 1 != 0);
         self.update_zero_and_negative(result);
         self.a = result;
-        // TODO: 1 CPU Tick
+        self.bus.tick();
     }
 
     fn inc(&mut self, mode: Mode) {
@@ -781,7 +783,7 @@ impl CPU {
         // TODO: read operand from memory
         let operand = 0 as u8;
         let result = operand.wrapping_add(1);
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         self.update_zero_and_negative(result);
         // TODO: write to memory
         result
@@ -796,7 +798,7 @@ impl CPU {
         // TODO: read operand from memory
         let operand = 0 as u8;
         let result = operand.wrapping_sub(1);
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         self.update_zero_and_negative(result);
         // TODO: write to memory
         result
@@ -804,115 +806,115 @@ impl CPU {
 
     fn inx(&mut self) {
         let result = self.x.wrapping_add(1);
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         self.update_zero_and_negative(result);
         self.x = result;
     }
 
     fn dex(&mut self) {
         let result = self.x.wrapping_sub(1);
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         self.update_zero_and_negative(result);
         self.x = result;
     }
 
     fn iny(&mut self) {
         let result = self.y.wrapping_add(1);
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         self.update_zero_and_negative(result);
         self.y = result;
     }
 
     fn dey(&mut self) {
         let result = self.y.wrapping_sub(1);
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         self.update_zero_and_negative(result);
         self.y = result;
     }
 
     fn tax(&mut self) {
         let result = self.a;
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         self.update_zero_and_negative(result);
         self.x = result;
     }
 
     fn tay(&mut self) {
         let result = self.a;
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         self.update_zero_and_negative(result);
         self.y = result;
     }
 
     fn txa(&mut self) {
         let result = self.x;
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         self.update_zero_and_negative(result);
         self.a = result;
     }
 
     fn tya(&mut self) {
         let result = self.y;
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         self.update_zero_and_negative(result);
         self.a = result;
     }
 
     fn txs(&mut self) {
         let result = self.x;
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         self.sp = result;
     }
 
     fn tsx(&mut self) {
         let result = self.sp;
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         self.update_zero_and_negative(result);
         self.x = result;
     }
 
     fn clc(&mut self) {
         self.update_flag(FlagBit::Carry, false);
-        // TODO: 1 CPU Tick
+        self.bus.tick();
     }
 
     fn sec(&mut self) {
         self.update_flag(FlagBit::Carry, true);
-        // TODO: 1 CPU Tick
+        self.bus.tick();
     }
 
     fn cli(&mut self) {
         self.update_flag(FlagBit::IrqDisable, false);
-        // TODO: 1 CPU Tick
+        self.bus.tick();
     }
 
     fn sei(&mut self) {
         self.update_flag(FlagBit::IrqDisable, true);
-        // TODO: 1 CPU Tick
+        self.bus.tick();
     }
 
     fn clv(&mut self) {
         self.update_flag(FlagBit::Overflow, false);
-        // TODO: 1 CPU Tick
+        self.bus.tick();
     }
 
     fn cld(&mut self) {
         self.update_flag(FlagBit::Decimal, false);
-        // TODO: 1 CPU Tick
+        self.bus.tick();
     }
 
     fn sed(&mut self) {
         self.update_flag(FlagBit::Decimal, true);
-        // TODO: 1 CPU Tick
+        self.bus.tick();
     }
     fn branch(&mut self, condition: bool) {
         // branch operand is signed. So we need `as i8 as u16` to cast it as twos-compliment representation
         let offset = self.fetch_operand(Mode::Immediate) as i8 as u16;
         if condition {
-            // TODO: 1 CPU Tick
+            self.bus.tick();
             let next_step = self.pc.wrapping_add(offset);
             if utils::high_byte(self.pc) != high_byte(next_step) {
-                // TODO: 1 CPU Tick
+                self.bus.tick();
             }
             self.pc = next_step;
         }
@@ -964,16 +966,16 @@ impl CPU {
     fn jsr(&mut self) {
         let target_address = self.get_operand_address(Mode::Absolute);
         let return_address = self.pc - 1;
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         self.push_2bytes(return_address);
         self.pc = target_address;
     }
 
     fn rts(&mut self) {
-        // TODO: 1 CPU Tick
-        // TODO: 1 CPU Tick
+        self.bus.tick();
+        self.bus.tick();
         self.pc = self.pop_2bytes() + 1;
-        // TODO: 1 CPU Tick
+        self.bus.tick();
     }
 
     fn brk(&mut self) {
@@ -987,35 +989,35 @@ impl CPU {
     }
 
     fn pha(&mut self) {
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         let a = self.a;
         self.push_byte(a);
     }
 
     fn pla(&mut self) {
-        // TODO: 1 CPU Tick
-        // TODO: 1 CPU Tick
+        self.bus.tick();
+        self.bus.tick();
         let result = self.pop_byte();
         self.update_zero_and_negative(result);
         self.a = result;
     }
 
     fn php(&mut self) {
-        // TODO: 1 CPU Tick
+        self.bus.tick();
         // See http://wiki.nesdev.com/w/index.php/CPU_status_flag_behavior
         let p = self.p | FlagBit::Push as u8 | FlagBit::Break as u8;
         self.push_byte(p);
     }
 
     fn plp(&mut self) {
-        // TODO: 1 CPU Tick
-        // TODO: 1 CPU Tick
+        self.bus.tick();
+        self.bus.tick();
         // Push and break flags are never set in the actual P register.
         self.p = self.pop_byte() & !(FlagBit::Push as u8 | FlagBit::Break as u8);
     }
 
     fn nop(&mut self) {
-        // TODO: 1 CPU Tick
+        self.bus.tick();
     }
 
     fn slo(&mut self, mode: Mode) {
