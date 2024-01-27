@@ -1,3 +1,5 @@
+use crate::controller::Controller;
+
 
 // SystemBus is a virtual bus that connects all the components of the system
 // 1. CPU cycle sync
@@ -11,6 +13,8 @@ pub struct SystemBus {
     pub cycles: u64,
     // CPU stall cycles
     stall_cycles: u8,
+    pub controller_0: Controller,
+    pub controller_1: Controller,
 }
 
 impl SystemBus {
