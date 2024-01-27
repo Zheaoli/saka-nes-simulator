@@ -1,6 +1,5 @@
 use crate::controller::Controller;
 
-
 // SystemBus is a virtual bus that connects all the components of the system
 // 1. CPU cycle sync
 // 2. Memory mapping
@@ -18,30 +17,25 @@ pub struct SystemBus {
 }
 
 impl SystemBus {
-    pub fn new()-> Self {
+    pub fn new() -> Self {
         Self {
             cycles: 0,
             stall_cycles: 0,
         }
     }
 
-    pub fn tick(&mut self){
-        self.cycles+=1;
-        let cycles=self.cycles;
+    pub fn tick(&mut self) {
+        self.cycles += 1;
+        let cycles = self.cycles;
         // TODO: sync with APU
-        
+
         // SYNC with nmi
 
         // TODO: sync with PPU, 3 PPU ticks per CPU cycle
-
     }
 
-    pub fn irq(&self)-> bool {
-        let cartridge_irq=false;
+    pub fn irq(&self) -> bool {
+        let cartridge_irq = false;
         cartridge_irq
     }
-
-    
-
-        
 }

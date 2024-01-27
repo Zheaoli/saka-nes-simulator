@@ -63,7 +63,7 @@ pub struct CPU {
 }
 
 impl CPU {
-    pub fn new(bus:SystemBus) -> CPU {
+    pub fn new(bus: SystemBus) -> CPU {
         CPU {
             bus,
             pc: 0,
@@ -266,7 +266,6 @@ impl CPU {
 
     fn execute_instruction_opcode(&mut self, opcode: u8) {
         match opcode {
-            
             // Loads
             0xa1 => self.lda(Mode::IndirectX),
             0xa5 => self.lda(Mode::ZeroPage),
