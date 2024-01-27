@@ -31,4 +31,13 @@ impl SystemBus {
         // TODO: sync with PPU, 3 PPU ticks per CPU cycle
 
     }
+
+    pub fn irq(&self)-> bool {
+        let cartridge_irq=false;
+        cartridge_irq
+    }
+
+    
+
+        
 }
