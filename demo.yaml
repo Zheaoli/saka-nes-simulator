@@ -1,0 +1,153 @@
+global:
+  resolve_timeout: 5m
+templates:
+  - '*.tmpl'
+route:
+  receiver: Default
+  group_by:
+  - namespace
+  - alertname
+  - name
+  - app
+  continue: false
+  routes:
+  - receiver: Watchdog
+    match:
+      alertname: Watchdog
+    continue: false
+  - receiver: PagerdutyEC2Blockchain
+    match_re:
+      severity: critical-node|Critical-node
+      app: ^.*-mainnet$
+      receiver: pagerduty
+    continue: true
+  - receiver: BlockchainEC2
+    match_re:
+      app: ^.*-mainnet$
+    continue: false
+  - receiver: Pagerduty-Node-Service
+    match_re:
+      namespace: ^blockchain-.*$
+      severity: critical|Critical
+      receiver: pagerduty
+    continue: true
+  - receiver: Blockchain
+    match_re:
+      namespace: ^blockchain-.*$
+    continue: false
+  - receiver: Critical
+    match:
+      severity: critical
+    continue: true
+  - receiver: Pagerduty-Backend-APIs
+    match:
+      severity: critical
+    match_re:
+      namespace: ^proxysql.*?
+    continue: true
+  - receiver: Business
+    match:
+      group: business
+    continue: false
+    repeat_interval: 1h
+  - receiver: Business-API
+    match:
+      group: business-api
+    continue: false
+    repeat_interval: 1h
+  - receiver: Business
+    match:
+      alertname: KubeJobFailed
+    continue: false
+  - receiver: RabbyAlert
+    match:
+      severity: warning-rabby
+    continue: false
+  - receiver: TiDB
+    repeat_interval: 30m
+    match:
+      job: tidb-cluster-basic-tidb
+    match_re:
+      level: emergency|critical
+  - receiver: CriticalNode
+    match:
+      severity: critical-node
+    continue: false
+  - receiver: WarningNode
+    match_re:
+      severity: warning-node|Warning-node
+    continue: false
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 3h
+inhibit_rules:
+- source_match:
+    severity: critical
+  target_match_re:
+    severity: warning|info
+  equal:
+  - namespace
+  - alertname
+- source_match:
+    severity: warning
+  target_match_re:
+    severity: info
+  equal:
+  - namespace
+  - alertname
+- source_match:
+    severity: critical-node
+  target_match_re:
+    severity: warning-node|info
+  equal:
+  - namespace
+  - alertname
+- source_match:
+    severity: warning-node
+  target_match_re:
+    severity: info
+  equal:
+  - namespace
+  - alertname
+receivers:
+- name: Default
+- name: Pagerduty-Node-Service
+  pagerduty_configs:
+  - service_key: 0b23e67e20c1460ec00836b553c9b461
+- name: Pagerduty-Backend-APIs
+  pagerduty_configs:
+  - service_key: acbfd75207cc4a0cc0282666a3f08d1e
+- name: Pagerduty-Data-Services
+  pagerduty_configs:
+  - service_key: 69ce203ae53a4c0dc0d5626ded123710
+- name: PagerdutyEC2Blockchain
+  pagerduty_configs:
+  - service_key: 0b23e67e20c1460ec00836b553c9b461
+- name: Watchdog
+- name: Blockchain
+  webhook_configs:
+    - url: https://webhook-infra.dbkops.com/webhook-adapter/production-blockchain-alert/alert_manager
+- name: BlockchainEC2
+  webhook_configs:
+    - url: https://webhook-infra.dbkops.com/webhook-adapter/production-blockchain-alert/alert_manager
+- name: Business
+  webhook_configs:
+    - url: https://webhook-infra.dbkops.com/webhook-adapter/production-business/alert_manager
+- name: Business-API
+  webhook_configs:
+    - url: https://webhook-infra.dbkops.com/webhook-adapter/production-business-api/alert_manager
+- name: Critical
+  webhook_configs:
+    - url: https://webhook-infra.dbkops.com/webhook-adapter/production/alert_manager
+- name: TiDB
+  webhook_configs:
+    - url: https://webhook-infra.dbkops.com/webhook-adapter/production-tidb/alert_manager
+- name: RabbyAlert
+  webhook_configs:
+    - url: https://webhook-infra.dbkops.com/webhook-adapter/rabby-alert/alert_manager\
+- name: CriticalNode
+  webhook_configs:
+    - url: https://webhook-infra.dbkops.com/webhook-adapter/infra/alert_manager
+- name: WarningNode
+  webhook_configs:
+    - url: https://webhook-infra.dbkops.com/webhook-adapter/infra-warning/alert_manager
