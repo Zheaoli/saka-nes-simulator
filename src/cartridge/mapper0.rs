@@ -3,16 +3,16 @@
 
 use super::pager::Page;
 use super::pager::PageSize;
-use super::CartridgeData;
+use super::Data;
 use super::Mapper;
 use super::Mirroring;
 
 pub struct Mapper0 {
-    data: CartridgeData,
+    data: Data,
 }
 
 impl Mapper0 {
-    pub fn new(data: CartridgeData) -> Self {
+    pub fn new(data: Data) -> Self {
         Mapper0 { data: data }
     }
 }
@@ -20,28 +20,28 @@ impl Mapper0 {
 impl Mapper for Mapper0 {
     fn read_prg_byte(&self, address: u16) -> u8 {
         match address {
-            0x6000...0x7FFF => self
+            0x6000..=0x7FFF => self
                 .data
                 .prg_ram
-                .read(Page::First(PageSize::EightKb), address - 0x6000),
-            0x8000...0xBFFF => self
+                .read(Page::First(PageSize::EightKB), address - 0x6000),
+            0x8000..=0xBFFF => self
                 .data
                 .prg_rom
-                .read(Page::First(PageSize::SixteenKb), address - 0x8000),
-            0xC000...0xFFFF => self
+                .read(Page::First(PageSize::SixteenKB), address - 0x8000),
+            0xC000..=0xFFFF => self
                 .data
                 .prg_rom
-                .read(Page::Last(PageSize::SixteenKb), address - 0xC000),
+                .read(Page::Last(PageSize::SixteenKB), address - 0xC000),
             a => panic!("bad address: {:04X}", a),
         }
     }
 
     fn write_prg_byte(&mut self, address: u16, value: u8) {
         match address {
-            0x6000...0x7FFF => {
+            0x6000..=0x7FFF => {
                 self.data
                     .prg_ram
-                    .write(Page::First(PageSize::EightKb), address - 0x6000, value)
+                    .write(Page::First(PageSize::EightKB), address - 0x6000, value)
             }
             _ => panic!("bad address"),
         }
@@ -51,11 +51,11 @@ impl Mapper for Mapper0 {
         if self.data.header.chr_rom_pages == 0 {
             self.data
                 .chr_ram
-                .read(Page::First(PageSize::EightKb), address)
+                .read(Page::First(PageSize::EightKB), address)
         } else {
             self.data
                 .chr_rom
-                .read(Page::First(PageSize::EightKb), address)
+                .read(Page::First(PageSize::EightKB), address)
         }
     }
 
@@ -63,7 +63,7 @@ impl Mapper for Mapper0 {
         if self.data.header.chr_rom_pages == 0 {
             self.data
                 .chr_ram
-                .write(Page::First(PageSize::EightKb), address, value)
+                .write(Page::First(PageSize::EightKB), address, value)
         }
     }
 

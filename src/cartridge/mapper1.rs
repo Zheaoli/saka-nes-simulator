@@ -3,7 +3,7 @@
 
 use super::pager::Page;
 use super::pager::PageSize;
-use super::CartridgeData;
+use super::Data;
 use super::Mapper;
 use super::Mirroring;
 
@@ -96,7 +96,7 @@ impl ShiftRegister {
 }
 
 pub struct Mapper1 {
-    data: CartridgeData,
+    data: Data,
     shift: ShiftRegister,
     control: ControlRegister,
     prg_0: usize,
@@ -105,7 +105,7 @@ pub struct Mapper1 {
 }
 
 impl Mapper1 {
-    pub fn new(data: CartridgeData) -> Self {
+    pub fn new(data: Data) -> Self {
         Mapper1 {
             data,
             shift: ShiftRegister::new(),
@@ -119,10 +119,10 @@ impl Mapper1 {
     fn write_shift(&mut self, address: u16, value: u8) {
         if let Some(shift_value) = self.shift.push(value) {
             match address {
-                0x8000...0x9FFF => self.control = ControlRegister(shift_value),
-                0xA000...0xBFFF => self.chr_0 = shift_value as usize & 0b1_1111,
-                0xC000...0xDFFF => self.chr_1 = shift_value as usize & 0b1_1111,
-                0xE000...0xFFFF => self.prg_0 = shift_value as usize & 0b1111,
+                0x8000..=0x9FFF => self.control = ControlRegister(shift_value),
+                0xA000..=0xBFFF => self.chr_0 = shift_value as usize & 0b1_1111,
+                0xC000..=0xDFFF => self.chr_1 = shift_value as usize & 0b1_1111,
+                0xE000..=0xFFFF => self.prg_0 = shift_value as usize & 0b1111,
                 _ => panic!("Invalid address"),
             }
         }
@@ -131,24 +131,24 @@ impl Mapper1 {
     fn read_paged_prg_ram(&self, offset: u16) -> u8 {
         self.data
             .prg_ram
-            .read(Page::First(PageSize::EightKb), offset)
+            .read(Page::First(PageSize::EightKB), offset)
     }
 
     fn write_paged_prg_ram(&mut self, offset: u16, value: u8) {
         self.data
             .prg_ram
-            .write(Page::First(PageSize::EightKb), offset, value);
+            .write(Page::First(PageSize::EightKB), offset, value);
     }
 
     fn write_paged_chr_ram(&mut self, address_range: AddressRange, offset: u16, value: u8) {
         let page = match self.control.chr_mode() {
             ChrMode::Consecutive => match address_range {
-                AddressRange::Low => Page::Number(self.chr_0, PageSize::FourKb),
-                AddressRange::High => Page::Number(self.chr_0 + 1, PageSize::FourKb),
+                AddressRange::Low => Page::Number(self.chr_0, PageSize::FourKB),
+                AddressRange::High => Page::Number(self.chr_0 + 1, PageSize::FourKB),
             },
             ChrMode::NonConsecutive => match address_range {
-                AddressRange::Low => Page::Number(self.chr_0, PageSize::FourKb), // TODO !? Low bit??
-                AddressRange::High => Page::Number(self.chr_1, PageSize::FourKb),
+                AddressRange::Low => Page::Number(self.chr_0, PageSize::FourKB), // TODO !? Low bit??
+                AddressRange::High => Page::Number(self.chr_1, PageSize::FourKB),
             },
         };
         self.data.chr_ram.write(page, offset, value)
@@ -157,16 +157,16 @@ impl Mapper1 {
     fn read_paged_prg_rom(&self, address_range: AddressRange, offset: u16) -> u8 {
         let page = match self.control.prg_mode() {
             PrgMode::FixFirst => match address_range {
-                AddressRange::Low => Page::First(PageSize::SixteenKb),
-                AddressRange::High => Page::Number(self.prg_0, PageSize::SixteenKb),
+                AddressRange::Low => Page::First(PageSize::SixteenKB),
+                AddressRange::High => Page::Number(self.prg_0, PageSize::SixteenKB),
             },
             PrgMode::FixLast => match address_range {
-                AddressRange::Low => Page::Number(self.prg_0, PageSize::SixteenKb),
-                AddressRange::High => Page::Last(PageSize::SixteenKb),
+                AddressRange::Low => Page::Number(self.prg_0, PageSize::SixteenKB),
+                AddressRange::High => Page::Last(PageSize::SixteenKB),
             },
             PrgMode::Consecutive => match address_range {
-                AddressRange::Low => Page::Number(self.prg_0 & !1, PageSize::SixteenKb),
-                AddressRange::High => Page::Number(self.prg_0 | 1, PageSize::SixteenKb),
+                AddressRange::Low => Page::Number(self.prg_0 & !1, PageSize::SixteenKB),
+                AddressRange::High => Page::Number(self.prg_0 | 1, PageSize::SixteenKB),
             },
         };
         self.data.prg_rom.read(page, offset)
@@ -175,12 +175,12 @@ impl Mapper1 {
     fn read_paged_chr_rom(&self, address_range: AddressRange, offset: u16) -> u8 {
         let page = match self.control.chr_mode() {
             ChrMode::Consecutive => match address_range {
-                AddressRange::Low => Page::Number(self.chr_0, PageSize::FourKb),
-                AddressRange::High => Page::Number(self.chr_0 + 1, PageSize::FourKb),
+                AddressRange::Low => Page::Number(self.chr_0, PageSize::FourKB),
+                AddressRange::High => Page::Number(self.chr_0 + 1, PageSize::FourKB),
             },
             ChrMode::NonConsecutive => match address_range {
-                AddressRange::Low => Page::Number(self.chr_0, PageSize::FourKb), // TODO !? Low bit??
-                AddressRange::High => Page::Number(self.chr_1, PageSize::FourKb),
+                AddressRange::Low => Page::Number(self.chr_0, PageSize::FourKB), // TODO !? Low bit??
+                AddressRange::High => Page::Number(self.chr_1, PageSize::FourKB),
             },
         };
 
@@ -195,33 +195,33 @@ impl Mapper1 {
 impl Mapper for Mapper1 {
     fn read_prg_byte(&self, address: u16) -> u8 {
         match address {
-            0x6000...0x7FFF => self.read_paged_prg_ram(address - 0x6000),
-            0x8000...0xBFFF => self.read_paged_prg_rom(AddressRange::Low, address - 0x8000),
-            0xC000...0xFFFF => self.read_paged_prg_rom(AddressRange::High, address - 0xC000),
+            0x6000..=0x7FFF => self.read_paged_prg_ram(address - 0x6000),
+            0x8000..=0xBFFF => self.read_paged_prg_rom(AddressRange::Low, address - 0x8000),
+            0xC000..=0xFFFF => self.read_paged_prg_rom(AddressRange::High, address - 0xC000),
             _ => panic!("bad address"),
         }
     }
 
     fn write_prg_byte(&mut self, address: u16, value: u8) {
         match address {
-            0x6000...0x7FFF => self.write_paged_prg_ram(address - 0x6000, value),
-            0x8000...0xFFFF => self.write_shift(address, value),
+            0x6000..=0x7FFF => self.write_paged_prg_ram(address - 0x6000, value),
+            0x8000..=0xFFFF => self.write_shift(address, value),
             _ => panic!("bad address"),
         }
     }
 
     fn read_chr_byte(&self, address: u16) -> u8 {
         match address {
-            0x0000...0x0FFF => self.read_paged_chr_rom(AddressRange::Low, address),
-            0x1000...0x1FFF => self.read_paged_chr_rom(AddressRange::High, address - 0x1000),
+            0x0000..=0x0FFF => self.read_paged_chr_rom(AddressRange::Low, address),
+            0x1000..=0x1FFF => self.read_paged_chr_rom(AddressRange::High, address - 0x1000),
             _ => panic!("bad address"),
         }
     }
 
     fn write_chr_byte(&mut self, address: u16, value: u8) {
         match address {
-            0x0000...0x0FFF => self.write_paged_chr_ram(AddressRange::Low, address, value),
-            0x1000...0x1FFF => {
+            0x0000..=0x0FFF => self.write_paged_chr_ram(AddressRange::Low, address, value),
+            0x1000..=0x1FFF => {
                 self.write_paged_chr_ram(AddressRange::High, address - 0x1000, value)
             }
             _ => panic!("bad address"),
@@ -261,7 +261,7 @@ mod test {
         assert_eq!(Some(0b10101), shift.push(1));
     }
 
-    fn build_cartridge_data() -> CartridgeData {
+    fn build_cartridge_data() -> Data {
         let mut data = vec![
             0x4e, 0x45, 0x53, 0x1a, 0x0F, // 16 x 16kb prg rom
             0x0F, // 16 x 8kb chr rom
@@ -279,7 +279,7 @@ mod test {
             data.push(i as u8);
         }
 
-        CartridgeData::new(&data)
+        Data::new(&data)
     }
 
     fn configure_mapper(mapper: &mut Mapper1, address: u16, value: u8) {
@@ -352,7 +352,7 @@ mod test {
         assert_eq!(mapper.read_prg_byte(0x8001), 0xFC);
 
         // Test the high addr range
-        mapper.data.prg_rom.data[PageSize::SixteenKb as usize * 3 + 5] = 0xFB;
+        mapper.data.prg_rom.data[PageSize::SixteenKB as usize * 3 + 5] = 0xFB;
         assert_eq!(mapper.read_prg_byte(0xC005), 0xFB);
     }
 
@@ -367,12 +367,12 @@ mod test {
         assert_eq!(mapper.chr_1, 5);
 
         // Test the low addr range
-        mapper.data.chr_rom.data[PageSize::FourKb as usize * 3 + 8] = 0xFC;
+        mapper.data.chr_rom.data[PageSize::FourKB as usize * 3 + 8] = 0xFC;
         assert_eq!(mapper.read_chr_byte(0x0008), 0xFC);
 
         // Test the high addr range
 
-        mapper.data.chr_rom.data[PageSize::FourKb as usize * 5 + 9] = 0xFD;
+        mapper.data.chr_rom.data[PageSize::FourKB as usize * 5 + 9] = 0xFD;
         assert_eq!(mapper.read_chr_byte(0x1009), 0xFD);
     }
 }

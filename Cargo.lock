@@ -23,6 +23,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitfield"
+version = "0.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "109ab0c6247e32ed4b244f84a4a01f2a243852831e061b11f1f2d67341ae0bff"
+
+[[package]]
 name = "env_logger"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -120,6 +126,7 @@ checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
 name = "saka-nes-simulator"
 version = "0.1.0"
 dependencies = [
+ "bitfield",
  "log",
  "pretty_env_logger",
 ]
