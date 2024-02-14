@@ -36,9 +36,7 @@ impl Cartridge {
             4 => Box::new(Mapper4::new(data)),
             n => panic!("Mapper {} not implemented yet", n),
         };
-        Cartridge{
-            mapper:mapper
-        }
+        Cartridge { mapper: mapper }
     }
 
     pub fn signal_scanline(&mut self) {
